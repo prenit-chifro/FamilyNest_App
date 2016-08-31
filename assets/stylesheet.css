@@ -1,0 +1,93 @@
+body{
+	margin:0;
+}
+.no-connection h1,.emergency-contact h3,.emergency-contact p{
+	margin:0;
+}
+.no-connection,.try-again{
+	text-align:center;
+    font-weight: 300;
+}
+.no-connection{
+	background:rgba(0,0,0,0.7);
+	color:#fff;
+	padding:10px;	
+}
+.no-connection h1{
+	font-size:16px;
+}
+.no-connection h1 img{
+	vertical-align: middle;
+    color: rgba(0,0,0,0.7);
+    background: #fff;
+    border-radius: 50%;
+    padding: 7px;
+    margin-right: 10px;
+}
+
+.main-profile-dot{
+	    display: block;
+    width: 100px;
+    height: 100px;
+    max-width: 100px;
+    margin: 0 auto;
+    border-radius: 50%;
+	text-align:center;
+	color:#fff;
+}
+
+.small-main-profile-dot{
+    width: 50px;
+    height: 50px;
+
+}
+.try-again,.alert-sms p{
+    max-width: 110px;
+    margin: 0 auto;
+    background: #2ad;
+    color: #fff;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 21px;
+    box-shadow: 0px 0px 4px #000;
+}
+.emergency-contact-full{
+    max-width: 400px;
+    margin: 0 auto;
+    box-shadow: 0px 0px 6px #B9B9B9;
+    padding: 14px;
+}
+.emergency-contact{
+	padding-top:10px;
+	padding-bottom:10px;
+    border-bottom: 1px dashed #B3B2B2;
+}
+.emergency-contact .contact-name{
+	color: #8E8C8C;
+	font-weight: 300;
+}
+.emergency-contact img{
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 13px;
+}
+.emergency-contact .contact-name,.emergency-contact .contact-relation {
+	display: inline-block;
+}
+.emergency-contact .contact-relation{
+	float: right;
+    padding-top: 7px;
+    border-left: 1px solid #ADABAB;
+    padding-bottom: 7px;
+    padding-left: 10px;
+    color: #2ad;
+    font-size: 11px;
+    margin-top: 10px;
+}
+.alert-sms p{
+	text-align:center;
+}

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<link rel="stylesheet" type = "text/css" href="stylesheet.css">
+		
+		
+	</head>
+	<body>
+		<div id="wrapper">
+			
+			<div class="no-connection">
+				<h1> <img src="no_wifi_1.png"><span> NO INTERNET CONNECTION </span></h1>
+			</div>
+			
+			<p class="try-again" onClick="checkInternetConnection();">TRY AGAIN</p>
+			
+			<div class="emergency-contact-full" id="emergency-contact-full">
+				
+			</div>
+			
+			<div class="alert-sms">
+				<p onclick="sendEmergencySMS();">EMERGENCY SMS</p>
+			</div>
+		</div>
+	</body>
+	
+	<script>
+
+		setFamilyMembersLayout();
+		
+		function setFamilyMembersLayout(){
+			var familyDiv = document.getElementById("emergency-contact-full");
+			if(familyDiv.innerHTML != "" ){
+				familyMembersString = Android.getFamilyMembeDetails();
+				
+				familyMembersJson = JSON.parse(familyMembersString);
+				firstNames = familyMembersJson.first_names.split(", ");
+				lastNames = familyMembersJson.last_names.split(", ");
+				relations = familyMembersJson.relations.split(", ");
+				imageUrls = familyMembersJson.image_urls.split(", ");
+				imageFileNames = familyMembersJson.image_file_names.split(", ");
+				
+				familyMemberMarkup = [];
+				imageSrcs= [];
+				for(i=0;i<imageFileNames.length; i++){
+					imageSrcs[i] = Android.downloadImageAndReturnLocalPath(imageFileNames[i], imageUrls[i]);
+					var imageElement;
+					if(imageSrcs[i] && imageSrcs[i] != ""){
+						imageElement = '<img src=' + imageSrcs[i] + '>';
+					} else {
+						imageElement = '<p class="small-main-profile-dot main-profile-dot dot-picture-profile" style="color:#fff; line-height: 1.5;font-size:35px;float: left;">' + firstNames[i][0].toUpperCase() + '</p>';
+					}
+					
+					familyMemberMarkup[i] = ['<div class="emergency-contact">',
+												imageElement,
+												'<h3 class="contact-name" style="padding:10px;">', firstNames[i], '</h3>',
+												'<p class="contact-relation" style="font-size:16px;">', relations[i], '</p>',
+											'</div>' ];
+					
+					familyDiv.innerHTML = familyDiv.innerHTML + familyMemberMarkup[i].join("");
+				}
+			}
+		}
+		
+		function checkInternetConnection(){
+			Android.checkInternetConnection();
+		}
+		
+		function sendEmergencySMS(){
+			Android.sendEmergencySMS("");
+		}
+		
+		function changeColor(){
+		    var randomColors = ["green",'#E29E45','#D5DE4B',"red","orange","pink","cyan"];
+		    var imageElements = document.getElementsByClassName("dot-picture-profile");
+		    var len = randomColors.length;
+		    for(i=0; i< imageElements.length; i++){
+		    	var randomNum = Math.floor(Math.random()*len);
+		    	imageElements[i].style.backgroundColor = randomColors[randomNum];
+		    	randomColors.slice(randomNum, 1);
+		    }
+		    
+		}
+		changeColor();
+	</script>
+</html>	
