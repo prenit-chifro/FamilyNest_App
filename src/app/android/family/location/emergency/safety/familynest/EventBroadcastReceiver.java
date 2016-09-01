@@ -48,8 +48,8 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 	private static final String INTERNET_CONNECTIVITY_EVENT_BROADCAST_RECEIVER_TAG = "INTERNET_CONNECTIVITY_EVENT_BROADCAST_RECEIVER";
 	private static final String GPS_STATUS_CHANGE_EVENT_BROADCAST_RECEIVER_TAG = "GPS_STATUS_CHANGE_EVENT_BROADCAST_RECEIVER";
 	
-	String serverUrl = "http://192.168.1.12:3000/update_user_location_from_device";
-	String charset = "UTF-8";  // Or in Java 7 and later, use the constant: java.nio.charset.StandardCharsets.UTF_8.name()
+	static String serverUrl = "http://192.168.1.12:3000/update_user_location_from_device";
+	static String charset = "UTF-8";  // Or in Java 7 and later, use the constant: java.nio.charset.StandardCharsets.UTF_8.name()
 		
 	public static volatile boolean isInternetAvailable;
 	public static volatile boolean isGPSEnabled;
@@ -71,7 +71,7 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
     private static final long MIN_TIME_BW_UPDATES = 1000 * 30 ; // 30 seconds
 
 	private static volatile EventBroadcastReceiver thisClassInstance;
-	private static volatile Context mycontext;
+	public static volatile Context mycontext;
 	
 	@Override
 	public void onReceive(Context context, Intent intent) {
@@ -86,61 +86,63 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 		if (intent.getAction().matches("android.net.conn.android.intent.action.BOOT_COMPLETED")) {
 			Log.v(BOOT_EVENT_BROADCAST_RECEIVER_TAG, "DEVICE BOOT EVENT RECEIVED");
 	    	
-	    	setInternetStatus(mycontext, null);
+	    	setInternetStatus(context, null);
 	    	
-	    	setGPSStatus(mycontext);
+	    	setGPSStatus(context);
 	    	
 	    }
 		
 		if (intent.getAction().matches("android.net.conn.CONNECTIVITY_CHANGE")) {
 			Log.v(INTERNET_CONNECTIVITY_EVENT_BROADCAST_RECEIVER_TAG, "INTERNET CCONNECTION STATUS CHANGE EVENT RECEIVED");
 	    	
-	    	setInternetStatus(mycontext, null);
+	    	setInternetStatus(context, null);
 	    }
 		
 		if (intent.getAction().matches("android.location.PROVIDERS_CHANGED")) {
 			Log.v(GPS_STATUS_CHANGE_EVENT_BROADCAST_RECEIVER_TAG, "GPS STATUS CHANGE RECEIVED");
 	    	
-	    	setGPSStatus(mycontext);
+	    	setGPSStatus(context);
 	    }
 		
 	}
 	
-	public void setInternetStatus(Context context, Activity activity){
-		if(connectivityManager == null){
-			connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-		}
+	public static void setInternetStatus(Context context, Activity activity){
 		
 		if(mycontext == null){
 			mycontext = context;
+		}
+		
+		if(connectivityManager == null){
+			connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 		}
 		
 		networkInfo = connectivityManager.getActiveNetworkInfo();
 		
 		if( networkInfo != null && networkInfo.isConnected()){
-			 CommonMethods.setInternetStatus(mycontext, true);
+			 CommonMethods.setInternetStatus(context, true);
+	 
+             AndroidMainActivity.setLayoutIfInternetAvailable(context, activity);
+			
+             NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+          	 manager.cancel(R.string.app_name-1);
 			 
-			 sendStoredLocationsToServer();
-			 
-			NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-         	manager.cancel(R.string.app_name-1);
-         	AndroidMainActivity.setLayoutIfInternetAvailable(context, activity);
-         					 
+          	 sendStoredLocationsToServer(context);
+		
 		 }else {
-			 CommonMethods.setInternetStatus(mycontext, false);
-			 setInternetNotification(mycontext);
-			 AndroidMainActivity.setLayoutIfInternetAvailable(mycontext, activity);
+			 CommonMethods.setInternetStatus(context, false);
+			 setInternetNotification(context);
+			 AndroidMainActivity.setLayoutIfInternetAvailable(context, activity);
 					 
 		 }
 	}
 		
-	public void setGPSStatus(Context context){
+	public static void setGPSStatus(Context context){
+			
 		if(mycontext == null){
 			mycontext = context;
-		}		
-		if(locationManager == null){
-			locationManager = (LocationManager) mycontext.getSystemService(Context.LOCATION_SERVICE);
 		}
+		
+		locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
 		
 		try {
             // getting GPS status
@@ -148,17 +150,19 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
                     .isProviderEnabled(LocationManager.GPS_PROVIDER);
             
             if(isGPSEnabled){
-            	CommonMethods.setGPSStatus(mycontext, true);
             	
-            	startGPSUpdates(mycontext, null);
+            	CommonMethods.setGPSStatus(context, true);
+            	
+            	startGPSUpdates(context, null);
             	
             	NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             	manager.cancel(R.string.app_name-2);
             	
             } else {
-            	CommonMethods.setGPSStatus(mycontext, false);
             	
-            	setGPSNotification(mycontext);
+            	CommonMethods.setGPSStatus(context, false);
+            	
+            	setGPSNotification(context);
             }
             
         } catch (Exception e) {
@@ -167,15 +171,17 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
         
 	}
 
-	public void startGPSUpdates(Context context, LocationRequest newLocationRequest){
+	public static void startGPSUpdates(Context context, LocationRequest newLocationRequest){
+		
 		if(mycontext == null){
 			mycontext = context;
 		}
+		
 		if(mGoogleApiClient == null){
 			if(thisClassInstance == null){
 				thisClassInstance = new EventBroadcastReceiver();
 			}
-			mGoogleApiClient = new GoogleApiClient.Builder(mycontext)
+			mGoogleApiClient = new GoogleApiClient.Builder(context)
 		            .addConnectionCallbacks(thisClassInstance)
 		            .addOnConnectionFailedListener(thisClassInstance)
 		            .addApi(LocationServices.API)
@@ -201,7 +207,8 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 	
 	}
 	
-	public void stopGPSUpdates(Context context){
+	public static void stopGPSUpdates(){
+		
 		if(mGoogleApiClient != null && mGoogleApiClient.isConnected()){
 			mGoogleApiClient.disconnect();
 		}
@@ -213,7 +220,12 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 		return mLastLocation;
 	}
 	
-	public void sendStoredLocationsToServer(){
+	public static void sendStoredLocationsToServer(Context context){
+		
+		if(mycontext == null){
+			mycontext = context;
+		}
+		
 		SharedPreferences unsentLocationUpdates = mycontext.getSharedPreferences("UnsentLocationUpdates", 0);
 		 String locationUpdatesString = unsentLocationUpdates.getString("locationUpdatesString", "");
 		 if(locationUpdatesString != ""){
@@ -233,9 +245,9 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 		 editor.apply();
 	}
 	
-	public void sendLocationToServer(double latitude, double longitude, long creationTimeInMiliseconds){
+	public static void sendLocationToServer(double latitude, double longitude, long creationTimeInMiliseconds){
 		
-		SharedPreferences currentUserIdPref = mycontext.getSharedPreferences("currentUserId", 0);
+		SharedPreferences currentUserIdPref = mycontext.getSharedPreferences("currentUserId", Context.MODE_WORLD_READABLE);
 		int currentUserId = currentUserIdPref.getInt("currentUserId", -1);
 		String gcmRegistrationId = GCMRegistrar.getRegistrationId(mycontext);
 		
@@ -272,7 +284,6 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 							OutputStream output = connection.getOutputStream();
 						    output.write(query.getBytes(charset));
 						} catch (IOException e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 
@@ -287,10 +298,10 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 				        }
 						
 					} catch (MalformedURLException e) {
-						// TODO Auto-generated catch block
+						
 						e.printStackTrace();
 					} catch (IOException e) {
-						// TODO Auto-generated catch block
+						
 						e.printStackTrace();
 					}
 			    }
@@ -299,20 +310,22 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 		}
 	}
 	
-	private void setInternetNotification(Context context){
+	private static void setInternetNotification(Context context){
+		if(mycontext == null){
+			mycontext = context;
+		}
+		
 		if(internetErrorNotification == null){
 			String title = "Internet connection not available";
-			String message = "Tap to turn on mobile data";
+			String message = "Tap to connect";
 			
 			
-			Intent mobileDataIntent = new Intent();
-			mobileDataIntent.setComponent(new ComponentName("com.android.settings", "com.android.settings.Settings$DataUsageSummaryActivity"));
-			
-			PendingIntent pIntent = PendingIntent.getActivity(context, 0, mobileDataIntent,
+			Intent wifiIntent = new Intent("android.net.wifi.PICK_WIFI_NETWORK");
+			PendingIntent pIntent = PendingIntent.getActivity(mycontext, 0, wifiIntent,
 					PendingIntent.FLAG_UPDATE_CURRENT);
 						
 			// Create the notification with a notification builder
-			NotificationCompat.Builder internetErrorNotificationBuilder = new NotificationCompat.Builder(context);
+			NotificationCompat.Builder internetErrorNotificationBuilder = new NotificationCompat.Builder(mycontext);
 			internetErrorNotificationBuilder.setSmallIcon(R.drawable.ic_launcher);
 			internetErrorNotificationBuilder.setWhen(System.currentTimeMillis());
 			internetErrorNotificationBuilder.setDefaults(Notification.DEFAULT_SOUND);
@@ -328,7 +341,7 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 			internetErrorNotification.priority = Notification.PRIORITY_MAX;
 		}
 	
-		NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+		NotificationManager manager = (NotificationManager) mycontext.getSystemService(Context.NOTIFICATION_SERVICE);
 		manager.notify(R.string.app_name-1, internetErrorNotification);
 		{
 			// Wake Android Device when notification received
@@ -351,13 +364,18 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 
 	}
 	
-	private void setGPSNotification(Context context){
+	private static void setGPSNotification(Context context){
+		
+		if(mycontext == null){
+			mycontext = context;
+		}
+		
 		if(gpsErrorNotification == null){
 			String title = "Location service not available";
 			String message = "Tap to open GPS settings";
 			
 			Intent gpsIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-			PendingIntent pIntent = PendingIntent.getActivity(context, 0, gpsIntent,
+			PendingIntent pIntent = PendingIntent.getActivity(mycontext, 0, gpsIntent,
 					PendingIntent.FLAG_UPDATE_CURRENT);
 			
 			// Create the notification with a notification builder

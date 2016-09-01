@@ -125,8 +125,10 @@ public class CommonMethods {
 	}
 	
 	public static void setGPSStatus(Context context, boolean status){
+		
 		SharedPreferences GPSStatusPref = context.getSharedPreferences("GPSStatus", 0);
 		Boolean oldStatus = GPSStatusPref.getBoolean("isGPSAvailable", false);
+		
 		if(oldStatus != status){
 			SharedPreferences.Editor editor = GPSStatusPref.edit();
 			editor.putBoolean("isGPSAvailable", status);
@@ -147,7 +149,7 @@ public class CommonMethods {
 	}
 	
 	public static void setCurrentUserId(Context context, int currentUserId){
-		SharedPreferences currentUserIdPref = context.getSharedPreferences("currentUserId", 0);
+		SharedPreferences currentUserIdPref = context.getSharedPreferences("currentUserId", Context.MODE_WORLD_READABLE);
 		int oldCurrentUserId = currentUserIdPref.getInt("currentUserId", -1);
 		if(oldCurrentUserId != currentUserId){
 			SharedPreferences.Editor editor = currentUserIdPref.edit();

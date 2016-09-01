@@ -156,10 +156,8 @@ public class AndroidMainActivity extends Activity {
      	myContext = getApplicationContext();
      	setActivityRunning(true);
      	
-    	eventBroadcastReceiver = new EventBroadcastReceiver();
-    	eventBroadcastReceiver.setInternetStatus(myContext, this);
-    	    	
-    	startGPSUpdatesInBackground();
+     	EventBroadcastReceiver.setInternetStatus(myContext, this);
+     	EventBroadcastReceiver.setGPSStatus(myContext);
     
     }
     
@@ -435,69 +433,83 @@ public class AndroidMainActivity extends Activity {
     }
     
     public static void setLayoutIfInternetAvailable(Context context, Activity activity) {
-        if (CommonMethods.isInternetAvailable(context)) {
-            if(needToLoadUrl == true){
-            	loadUrl(finalUrlToLoadInWebView);
-            	needToLoadUrl = false;
-            }
-            if(internetAlert != null){
-            	internetAlert.dismiss();
-            }
-                    
-        } else {
-        	loadUrl("file:///android_asset/no_internet_view.html");
-        	createNetErrorDialog(context, activity);
-        	        	        	
-        	needToLoadUrl = true;
-	    }
         
+    	if(myWebView != null){
+    		if (CommonMethods.isInternetAvailable(context)) {
+                if(needToLoadUrl == true){
+                	loadUrl(finalUrlToLoadInWebView);
+                	needToLoadUrl = false;
+                }
+                if(internetAlert != null){
+                	internetAlert.dismiss();
+                }
+                        
+            } else {
+            	loadUrl("file:///android_asset/no_internet_view.html");
+            	createNetErrorDialog(context, activity);
+            	        	        	
+            	needToLoadUrl = true;
+    	    }
+            
+    	}
+    	
     }
 
-    private static void createNetErrorDialog( final Context context, final Activity activity) {
+    static void createNetErrorDialog( final Context context, final Activity activity) {
     	
     	if(activity != null){
-    		if(alertDialog == null){
-        		alertDialog = new Builder(activity);
-        		alertDialog.setTitle("No Internet Connection.");
-                alertDialog.setMessage("Please connect to Internet.");
-                alertDialog.setPositiveButton("Wi-fi", new DialogInterface.OnClickListener(){
+    		activity.runOnUiThread(new Runnable() {
+    		    public void run() {
+    		    	if(alertDialog == null){
+    	        		alertDialog = new Builder(activity);
+    	        		alertDialog.setTitle("No Internet Connection.");
+    	                alertDialog.setMessage("Please connect to Internet.");
+    	                alertDialog.setPositiveButton("Wi-fi", new DialogInterface.OnClickListener(){
 
-        			@Override
-        			public void onClick(DialogInterface dialog, int which) {
-        				dialog.dismiss();
-        				Intent intent = new Intent("android.net.wifi.PICK_WIFI_NETWORK");
-        				activity.startActivity(intent);
-        	        }
-                	
-                });
-                alertDialog.setNegativeButton("Mobile Data", new DialogInterface.OnClickListener(){
+    	        			@Override
+    	        			public void onClick(DialogInterface dialog, int which) {
+    	        				dialog.dismiss();
+    	        				Intent intent = new Intent("android.net.wifi.PICK_WIFI_NETWORK");
+    	        				activity.startActivity(intent);
+    	        	        }
+    	                	
+    	                });
+    	                alertDialog.setNegativeButton("Mobile Data", new DialogInterface.OnClickListener(){
 
-        			@Override
-        			public void onClick(DialogInterface dialog, int which) { 
-        				 dialog.dismiss();
-        				 Intent intent = new Intent();
-        		         intent.setComponent(new ComponentName("com.android.settings", "com.android.settings.Settings$DataUsageSummaryActivity"));
-        		         activity.startActivity(intent);
-        	        }
-                	
-                });
-                alertDialog.setNeutralButton("Cancel", new DialogInterface.OnClickListener(){
+    	        			@Override
+    	        			public void onClick(DialogInterface dialog, int which) { 
+    	        				 dialog.dismiss();
+    	        				 Intent intent = new Intent();
+    	        		         intent.setComponent(new ComponentName("com.android.settings", "com.android.settings.Settings$DataUsageSummaryActivity"));
+    	        		         activity.startActivity(intent);
+    	        	        }
+    	                	
+    	                });
+    	                alertDialog.setNeutralButton("Cancel", new DialogInterface.OnClickListener(){
 
-        			@Override
-        			public void onClick(DialogInterface dialog, int which) {
-        				 dialog.dismiss();
-        			}
-                	
-                });
-                
-        	}
-    		internetAlert = alertDialog.create(); 
+    	        			@Override
+    	        			public void onClick(DialogInterface dialog, int which) {
+    	        				 dialog.dismiss();
+    	        			}
+    	                	
+    	                });
+    	                
+    	            }
+    	    		
+    	    		if(internetAlert == null){
+    	    			internetAlert = alertDialog.create();
+    	    		}
+    	    		
+    	    		if(!internetAlert.isShowing()){
+    	    			internetAlert.show();
+    	    		} 
+    	    	}
 
-    		internetAlert.show();		
+    		});
+        }
 
-    	}
     }
-
+    
     private Intent setCameraIntent(){
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 
@@ -563,11 +575,11 @@ public class AndroidMainActivity extends Activity {
     }
     
     public void startGPSUpdatesInBackground(){
-    	eventBroadcastReceiver.startGPSUpdates(myContext, null);
+    	EventBroadcastReceiver.setGPSStatus(myContext);
     }
     
     public void stopGPSUpdatesInBackground(){
-    	eventBroadcastReceiver.stopGPSUpdates(myContext);
+    	EventBroadcastReceiver.stopGPSUpdates();
     }
     
     public void setActivityRunning(boolean status){

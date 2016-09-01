@@ -67,28 +67,15 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
                 .addApi(LocationServices.API)
                 .build();
         locationManager = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
+        mLocationRequest = LocationRequest.create();
+        mLocationRequest.setSmallestDisplacement(MIN_DISTANCE_CHANGE_FOR_UPDATES); // Updte every 10 meters
+        mLocationRequest.setInterval(MIN_TIME_BW_UPDATES); // Update location every 60 seconds
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+        
     }
     
-    public boolean canGetLocation() {
-    	try {
-            // getting GPS status
-            isGPSEnabled = locationManager
-                    .isProviderEnabled(LocationManager.GPS_PROVIDER);
-            
-            isNetworkEnabled = locationManager
-                    .isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-            
-            if(isGPSEnabled || isNetworkEnabled){
-            	canGetLocation = true;
-            } else {
-            	canGetLocation = false;
-            }
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    	
-    	return canGetLocation;
+    public boolean canGetLocation() {	
+    	return CommonMethods.isGPSAvailable(mContext);
     }
     
 
@@ -97,10 +84,9 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
      * Calling this function will Start using GPS in your app
      * */
     public void startGpsLocationUpdates(String locationFor){
-    	if(canGetLocation){
+    	if(canGetLocation()){
     		
-    		
-        	needLocationFor = locationFor;
+    		needLocationFor = locationFor;
         	
         	if(needLocationFor == "web"){
         		doesNeedContinuousLocationUpdates = true;
@@ -110,11 +96,7 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
     		if(!mGoogleApiClient.isConnected()){
     			mGoogleApiClient.connect();
     		} else {
-    			mLocationRequest = LocationRequest.create();
-    	        mLocationRequest.setSmallestDisplacement(MIN_DISTANCE_CHANGE_FOR_UPDATES); // Updte every 10 meters
-    	        mLocationRequest.setInterval(MIN_TIME_BW_UPDATES); // Update location every 60 seconds
-    	        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
-    	        
+    			
     	        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
     	        
     	        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
@@ -144,12 +126,7 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
     @Override
 	public void onConnected(Bundle arg0) {
 	 	
-		mLocationRequest = LocationRequest.create();
-        mLocationRequest.setSmallestDisplacement(MIN_DISTANCE_CHANGE_FOR_UPDATES); // Updte every 10 meters
-        mLocationRequest.setInterval(MIN_TIME_BW_UPDATES); // Update location every 60 seconds
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
-        
-        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+		LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
         
         mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
                 mGoogleApiClient);
@@ -213,12 +190,7 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
     	        }
     			
     		} else {
-    			mWebView.post(new Runnable() {
-		    	    @Override
-		    	    public void run() {
-		    	    	mWebView.loadUrl(String.format("javascript:notifyGeolocationChange('%f', '%f', '%s')" , mLastLocation.getLatitude(), mLastLocation.getLongitude(), needLocationFor));
-		    	    }
-			    });
+    			mActivity.loadUrl(String.format("javascript:notifyGeolocationChange('%f', '%f', '%s')" , mLastLocation.getLatitude(), mLastLocation.getLongitude(), needLocationFor));
     		}
     		
     	}			

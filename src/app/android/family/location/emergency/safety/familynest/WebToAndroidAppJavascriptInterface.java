@@ -358,7 +358,3 @@ public class WebToAndroidAppJavascriptInterface{
     
      
 }
-
-	
-     
-
