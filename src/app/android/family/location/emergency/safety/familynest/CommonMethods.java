@@ -22,30 +22,30 @@ import android.widget.Toast;
 public class CommonMethods {
 	
 	public static File downloadImage(final String fileName, final String URL, Context context) {
-    	
-		File imageStorageDir = new File(
-                Environment.getExternalStorageDirectory().toString()
-                , "FamilyNest/Images");
+		File imageFile = null;
+		if(isInternetAvailable(context)){
+			Toast.makeText(context, "Downloading image. Please wait...", Toast.LENGTH_SHORT).show();
+			File imageStorageDir = new File(
+	                Environment.getExternalStorageDirectory().toString()
+	                , "FamilyNest/Images");
 
-        if (!imageStorageDir.exists()) {
-            // Create FamilyNest Folder at sdcard
-            imageStorageDir.mkdirs();
-        }
+	        if (!imageStorageDir.exists()) {
+	            // Create FamilyNest Folder at sdcard
+	            imageStorageDir.mkdirs();
+	        }
 
-        File imageFile;
-        
-        if(fileName == "" || fileName == null){
-        	imageFile = new File(imageStorageDir, "FamilyNest_IMG_"+ String.valueOf(System.currentTimeMillis())
-            + ".jpg");
-        } else {
-        	imageFile = new File(imageStorageDir, "FamilyNest_IMG_" + fileName);
-        }
-        // Create camera captured image file path and name
-        
-        if(!imageFile.exists()){
-        	        	
-        	if(isInternetAvailable(context)){
-        		
+	        
+	        
+	        if(fileName == "" || fileName == null){
+	        	imageFile = new File(imageStorageDir, "FamilyNest_IMG_"+ String.valueOf(System.currentTimeMillis())
+	            + ".jpg");
+	        } else {
+	        	imageFile = new File(imageStorageDir, "FamilyNest_IMG_" + fileName);
+	        }
+	        // Create camera captured image file path and name
+	        
+	        if(!imageFile.exists()){
+	        	
         		Bitmap bitmap = null;
     			InputStream in = null;
     			
@@ -76,13 +76,10 @@ public class CommonMethods {
         			e1.printStackTrace();
         		}
         		
-        		
-        	}else {
-        		imageFile = null;
         	}
-        	        
-        }
-    
+		
+		}
+		
 		return imageFile;
 	}
 	
@@ -114,7 +111,7 @@ public class CommonMethods {
 	}
 	
 	public static void setInternetStatus(Context context, boolean status){
-		SharedPreferences intenetStatusPref = context.getSharedPreferences("InternetStatus", 0);
+		SharedPreferences intenetStatusPref = context.getSharedPreferences("InternetStatus", Context.MODE_PRIVATE);
 		Boolean oldStatus = intenetStatusPref.getBoolean("isInternetAvailable", false);
 		if(oldStatus != status){
 			SharedPreferences.Editor editor = intenetStatusPref.edit();
@@ -126,7 +123,7 @@ public class CommonMethods {
 	
 	public static void setGPSStatus(Context context, boolean status){
 		
-		SharedPreferences GPSStatusPref = context.getSharedPreferences("GPSStatus", 0);
+		SharedPreferences GPSStatusPref = context.getSharedPreferences("GPSStatus", Context.MODE_PRIVATE);
 		Boolean oldStatus = GPSStatusPref.getBoolean("isGPSAvailable", false);
 		
 		if(oldStatus != status){
@@ -137,19 +134,19 @@ public class CommonMethods {
 	}
 	
 	public static boolean isGPSAvailable(Context context){
-		SharedPreferences GPSStatusPref = context.getSharedPreferences("GPSStatus", 0);
+		SharedPreferences GPSStatusPref = context.getSharedPreferences("GPSStatus", Context.MODE_PRIVATE);
 		Boolean oldStatus = GPSStatusPref.getBoolean("isGPSAvailable", false);
 		return oldStatus;
 	}
     
 	public static boolean isInternetAvailable(Context context){
-		SharedPreferences intenetStatusPref = context.getSharedPreferences("InternetStatus", 0);
+		SharedPreferences intenetStatusPref = context.getSharedPreferences("InternetStatus", Context.MODE_PRIVATE);
 		Boolean oldStatus = intenetStatusPref.getBoolean("isInternetAvailable", false);
 		return oldStatus;
 	}
 	
 	public static void setCurrentUserId(Context context, int currentUserId){
-		SharedPreferences currentUserIdPref = context.getSharedPreferences("currentUserId", Context.MODE_WORLD_READABLE);
+		SharedPreferences currentUserIdPref = context.getSharedPreferences("currentUserId", Context.MODE_PRIVATE);
 		int oldCurrentUserId = currentUserIdPref.getInt("currentUserId", -1);
 		if(oldCurrentUserId != currentUserId){
 			SharedPreferences.Editor editor = currentUserIdPref.edit();

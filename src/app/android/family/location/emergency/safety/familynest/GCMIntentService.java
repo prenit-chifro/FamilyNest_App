@@ -95,6 +95,8 @@ public class GCMIntentService extends GCMBaseIntentService {
 				
 				e.printStackTrace();
 			}
+		}else{
+			builder.setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_launcher));
 		}
 		
 		if(bigImageUrl != null && imageUrl != ""){

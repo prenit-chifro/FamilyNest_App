@@ -49,41 +49,44 @@ import android.widget.RelativeLayout.LayoutParams;
 @SuppressLint("NewApi")
 public class AndroidMainActivity extends Activity {
 	
-	private static String homeLocalUrl = "http://192.168.1.12:3000";
-	private String localUrl = "http://192.168.137.1:3000";
-    public String liveUrl = "http://familynest.co";
-    public static String finalUrlToLoadInWebView = homeLocalUrl;   
+	static String test_ip_12_host = "http://192.168.1.12:3000";
+	static String test_ip_13_host = "http://192.168.1.13:3000";
+	static String test_ip_hotspot_host = "http://192.168.137.1:3000";
+    static String liveUrl_host = "https://familynest.co";
+    static String finalHostToLoadInWebView = liveUrl_host;
+    static String finalUrlToLoadInWebView = finalHostToLoadInWebView;   
     
-	public static Context myContext;
+    static Context myContext;
+	static AndroidMainActivity myActivity;
 	
-	public static volatile EventBroadcastReceiver eventBroadcastReceiver; 
+	static volatile EventBroadcastReceiver eventBroadcastReceiver; 
 	    
-	public static ViewFlipper flipper;
-	public static WebView myWebView;
+	static ViewFlipper flipper;
+	static WebView myWebView;
     
-    public static boolean needToLoadUrl = true;
+    static boolean needToLoadUrl = true;
         
-    public ProgressDialog myProgressDialog;
-    public static Builder alertDialog;
-    public static AlertDialog internetAlert;
+    ProgressDialog myProgressDialog;
+    static Builder alertDialog;
+    static AlertDialog internetAlert;
     
-    private ValueCallback<Uri> fileUploadCallback;
-    private ValueCallback<Uri[]> fileUploadCallbackArray;
+    ValueCallback<Uri> fileUploadCallback;
+    ValueCallback<Uri[]> fileUploadCallbackArray;
 
-    private final static int FILECHOOSER_REQUESTCODE = 1;
-    private final static int SHARE_REQUESTCODE = 2;
-    private Uri cameraImageUri;
-    private String cameraImagePath;
-    private static final int PICK_CONTACT = 3;
+    final static int FILECHOOSER_REQUESTCODE = 1;
+    final static int SHARE_REQUESTCODE = 2;
+    Uri cameraImageUri;
+    String cameraImagePath;
+    static final int PICK_CONTACT = 3;
     
-    private String contactNumber = null;
-    private String contactName = null;
+    String contactNumber = null;
+    String contactName = null;
     
     /**
      * Tag used on log messages.
      */
-    static final String TAG = "FamilyNest_APP_MAIN_ACTIVITY";
-    static final String TAG_ID = TAG+"-ID";
+    final String TAG = "FamilyNest_APP_MAIN_ACTIVITY";
+    final String TAG_ID = TAG+"-ID";
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,6 +99,10 @@ public class AndroidMainActivity extends Activity {
         
         myProgressDialog = new ProgressDialog(this);
         myProgressDialog.setMessage("Please wait ...");
+        
+        myContext = getApplicationContext();
+        myActivity = this;
+        setActivityRunning(true);
         
         myWebView = (WebView) findViewById(R.id.myWebView);
         setWebView(myWebView);
@@ -153,19 +160,17 @@ public class AndroidMainActivity extends Activity {
            	}          
         }
     	
-     	myContext = getApplicationContext();
-     	setActivityRunning(true);
-     	
-     	EventBroadcastReceiver.setInternetStatus(myContext, this);
+     	EventBroadcastReceiver.setInternetStatus(myContext);
      	EventBroadcastReceiver.setGPSStatus(myContext);
-    
+     	setLayoutIfInternetAvailable(myContext);
+        
     }
     
     @Override
     public void onResume()
     {
        super.onResume();
-       setLayoutIfInternetAvailable(myContext, this);
+       setLayoutIfInternetAvailable(myContext);
 
     }
     public void onPause()
@@ -432,9 +437,9 @@ public class AndroidMainActivity extends Activity {
 
     }
     
-    public static void setLayoutIfInternetAvailable(Context context, Activity activity) {
+    public static void setLayoutIfInternetAvailable(Context context) {
         
-    	if(myWebView != null){
+    	if(myActivity != null && myWebView != null){
     		if (CommonMethods.isInternetAvailable(context)) {
                 if(needToLoadUrl == true){
                 	loadUrl(finalUrlToLoadInWebView);
@@ -446,7 +451,7 @@ public class AndroidMainActivity extends Activity {
                         
             } else {
             	loadUrl("file:///android_asset/no_internet_view.html");
-            	createNetErrorDialog(context, activity);
+            	createNetErrorDialog(context, myActivity);
             	        	        	
             	needToLoadUrl = true;
     	    }

@@ -172,9 +172,7 @@ public class WebToAndroidAppJavascriptInterface{
     
     @JavascriptInterface
     public void startGeoLocationUpdatesInBackground(){
-    	   	    	
     	myActivity.startGPSUpdatesInBackground();
-    	
     }
     
     @JavascriptInterface
@@ -207,6 +205,16 @@ public class WebToAndroidAppJavascriptInterface{
     }
     
     @JavascriptInterface
+    public void dialCall(String isdCode, String contactNumber){
+    	showToast("in android call method: " + isdCode + contactNumber);
+    	if((isdCode != null && isdCode != "") && (contactNumber != null && contactNumber != "")){
+    		Intent callIntent = new Intent(Intent.ACTION_DIAL);
+    		callIntent.setData(Uri.parse("tel:" + isdCode + contactNumber));
+    		myActivity.startActivity(callIntent);
+    	}
+    }
+    		
+    @JavascriptInterface
     public void saveFamilyMembeDetails(String familyMemberDetailsString){
     	if(familyMemberDetailsString != null && !familyMemberDetailsString.isEmpty()){
     		SharedPreferences familyMemberDetails = myContext.getSharedPreferences("FamilyMemberDetails", 0);
@@ -214,7 +222,7 @@ public class WebToAndroidAppJavascriptInterface{
         	editor.putString("familyMemberDetailsString", familyMemberDetailsString);
         	// Apply the edits!
         	editor.apply();
-        	showToast("Successfully saved Family Member details in phone ");
+        	//showToast("Successfully saved Family Member details in phone ");
         	try {
     			JSONObject familyJson = new JSONObject(familyMemberDetailsString);
     			String imageUrlsString = familyJson.getString("image_urls"); String[] imageUrls = imageUrlsString.split(", ", -1);
@@ -269,7 +277,7 @@ public class WebToAndroidAppJavascriptInterface{
     
     @JavascriptInterface
     public void checkInternetConnection(){
-    	myActivity.setLayoutIfInternetAvailable(myContext, myActivity);
+    	myActivity.setLayoutIfInternetAvailable(myContext);
     }
     
     @JavascriptInterface
@@ -353,8 +361,21 @@ public class WebToAndroidAppJavascriptInterface{
     
     @JavascriptInterface
     public void setCurrentUserIdOnDevice(String currentUserId){
-    	CommonMethods.setCurrentUserId(myContext, Integer.parseInt(currentUserId));
+    	if(currentUserId != null && currentUserId != "" && myContext != null){
+    		CommonMethods.setCurrentUserId(myContext, Integer.parseInt(currentUserId));
+    	}
     }
     
+    @JavascriptInterface
+    public void setCurrentUrl(String relativePath){
+    	if(relativePath != null && myActivity != null && myActivity.finalUrlToLoadInWebView != myActivity.finalHostToLoadInWebView + relativePath){
+    		myActivity.finalUrlToLoadInWebView = myActivity.finalHostToLoadInWebView + relativePath;
+    	}
+    }
+   
+    @JavascriptInterface
+    public float getBatteryLevel(){
+    	return EventBroadcastReceiver.getBatteryLevel(myContext);	
+    }
      
 }

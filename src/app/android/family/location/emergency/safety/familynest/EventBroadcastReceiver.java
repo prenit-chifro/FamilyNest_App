@@ -16,29 +16,26 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
-import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
 import android.location.LocationManager;
 import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-import android.widget.Toast;
 
 public class EventBroadcastReceiver extends BroadcastReceiver implements GoogleApiClient.ConnectionCallbacks,
 GoogleApiClient.OnConnectionFailedListener, LocationListener{
@@ -48,30 +45,31 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 	private static final String INTERNET_CONNECTIVITY_EVENT_BROADCAST_RECEIVER_TAG = "INTERNET_CONNECTIVITY_EVENT_BROADCAST_RECEIVER";
 	private static final String GPS_STATUS_CHANGE_EVENT_BROADCAST_RECEIVER_TAG = "GPS_STATUS_CHANGE_EVENT_BROADCAST_RECEIVER";
 	
-	static String serverUrl = "http://192.168.1.12:3000/update_user_location_from_device";
+	static String serverURL = AndroidMainActivity.finalHostToLoadInWebView + "/update_user_location_from_device" ;
 	static String charset = "UTF-8";  // Or in Java 7 and later, use the constant: java.nio.charset.StandardCharsets.UTF_8.name()
 		
-	public static volatile boolean isInternetAvailable;
-	public static volatile boolean isGPSEnabled;
-	public static volatile boolean canGetLocation;
+	static volatile boolean isInternetAvailable;
+	static volatile boolean isGPSEnabled;
+	static volatile boolean canGetLocation;
 	
-	private static volatile ConnectivityManager connectivityManager;
-	private static volatile NetworkInfo networkInfo;
-	private static volatile GoogleApiClient mGoogleApiClient;
-	private static volatile LocationManager locationManager;
-	private static volatile LocationRequest mLocationRequest;
-	private static Location mLastLocation;
-	private static volatile Notification internetErrorNotification;
-	private static volatile Notification gpsErrorNotification;
+	static volatile ConnectivityManager connectivityManager;
+	static volatile BatteryManager batteryManager;
+	static volatile NetworkInfo networkInfo;
+	static volatile GoogleApiClient mGoogleApiClient;
+	static volatile LocationManager locationManager;
+	static volatile LocationRequest mLocationRequest;
+	static Location mLastLocation;
+	static volatile Notification internetErrorNotification;
+	static volatile Notification gpsErrorNotification;
 	
 	// The minimum distance to change Updates in meters
-    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 5; // 10 meters
+    static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
  
     // The minimum time between updates in milliseconds
-    private static final long MIN_TIME_BW_UPDATES = 1000 * 30 ; // 30 seconds
+    static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 10 ; // 10 minutes
 
-	private static volatile EventBroadcastReceiver thisClassInstance;
-	public static volatile Context mycontext;
+	static volatile EventBroadcastReceiver thisClassInstance;
+	static volatile Context mycontext;
 	
 	@Override
 	public void onReceive(Context context, Intent intent) {
@@ -86,7 +84,7 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 		if (intent.getAction().matches("android.net.conn.android.intent.action.BOOT_COMPLETED")) {
 			Log.v(BOOT_EVENT_BROADCAST_RECEIVER_TAG, "DEVICE BOOT EVENT RECEIVED");
 	    	
-	    	setInternetStatus(context, null);
+	    	setInternetStatus(context);
 	    	
 	    	setGPSStatus(context);
 	    	
@@ -95,7 +93,10 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 		if (intent.getAction().matches("android.net.conn.CONNECTIVITY_CHANGE")) {
 			Log.v(INTERNET_CONNECTIVITY_EVENT_BROADCAST_RECEIVER_TAG, "INTERNET CCONNECTION STATUS CHANGE EVENT RECEIVED");
 	    	
-	    	setInternetStatus(context, null);
+	    	setInternetStatus(context);
+	    	
+			AndroidMainActivity.setLayoutIfInternetAvailable(context);
+			 
 	    }
 		
 		if (intent.getAction().matches("android.location.PROVIDERS_CHANGED")) {
@@ -106,7 +107,7 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 		
 	}
 	
-	public static void setInternetStatus(Context context, Activity activity){
+	public static void setInternetStatus(Context context){
 		
 		if(mycontext == null){
 			mycontext = context;
@@ -120,10 +121,8 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 		
 		if( networkInfo != null && networkInfo.isConnected()){
 			 CommonMethods.setInternetStatus(context, true);
-	 
-             AndroidMainActivity.setLayoutIfInternetAvailable(context, activity);
-			
-             NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+			 
+			 NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
           	 manager.cancel(R.string.app_name-1);
 			 
           	 sendStoredLocationsToServer(context);
@@ -131,9 +130,8 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 		 }else {
 			 CommonMethods.setInternetStatus(context, false);
 			 setInternetNotification(context);
-			 AndroidMainActivity.setLayoutIfInternetAvailable(context, activity);
-					 
 		 }
+		
 	}
 		
 	public static void setGPSStatus(Context context){
@@ -225,6 +223,11 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 		if(mycontext == null){
 			mycontext = context;
 		}
+		if(batteryManager == null){
+			batteryManager =  (BatteryManager) context.getSystemService(Context.BATTERY_SERVICE);
+		}
+		
+		float batLevel = getBatteryLevel(mycontext);
 		
 		SharedPreferences unsentLocationUpdates = mycontext.getSharedPreferences("UnsentLocationUpdates", 0);
 		 String locationUpdatesString = unsentLocationUpdates.getString("locationUpdatesString", "");
@@ -236,7 +239,7 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 					 double latitude = Double.parseDouble(locationDetailArray[0]);
 					 double longitude = Double.parseDouble(locationDetailArray[1]);
 					 long creationTime = Long.parseLong(locationDetailArray[2]);
-					 sendLocationToServer(latitude, longitude, creationTime);
+					 sendLocationToServer(latitude, longitude, creationTime, batLevel);
 				 }
 			 }
 		 }
@@ -245,20 +248,20 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 		 editor.apply();
 	}
 	
-	public static void sendLocationToServer(double latitude, double longitude, long creationTimeInMiliseconds){
+	public static void sendLocationToServer(double latitude, double longitude, long creationTimeInMiliseconds, float batteryLevel){
 		
 		SharedPreferences currentUserIdPref = mycontext.getSharedPreferences("currentUserId", Context.MODE_WORLD_READABLE);
 		int currentUserId = currentUserIdPref.getInt("currentUserId", -1);
 		String gcmRegistrationId = GCMRegistrar.getRegistrationId(mycontext);
-		
+				
 		final String query;
 				
 		if(currentUserId > 0){
-			query = String.format("latitude=%s&longitude=%s&creation_time=%d&current_user_id=%d&gcm_registration_id=%s", (long)latitude, longitude, creationTimeInMiliseconds, currentUserId, gcmRegistrationId);
+			query = String.format("latitude=%s&longitude=%s&creation_time=%s&battery_level=%s&current_user_id=%d&gcm_registration_id=%s", latitude, longitude, creationTimeInMiliseconds, batteryLevel, currentUserId, gcmRegistrationId);
 			
 		}else{
 			if(gcmRegistrationId != ""){
-				query = String.format("latitude=%s&longitude=%s&creation_time=%d&gcm_registration_id=%s", latitude, longitude, creationTimeInMiliseconds, gcmRegistrationId);
+				query = String.format("latitude=%s&longitude=%s&creation_time=%s&battery_level=%s&gcm_registration_id=%s", latitude, longitude, creationTimeInMiliseconds, batteryLevel,  gcmRegistrationId);
 				
 			}else{
 				query = "";
@@ -275,7 +278,7 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 			    {	
 			    	URLConnection connection;
 					try {
-						connection = new URL(serverUrl).openConnection();
+						connection = new URL(serverURL).openConnection();
 						connection.setDoOutput(true); // Triggers POST.
 						connection.setRequestProperty("Accept-Charset", charset);
 						connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=" + charset);
@@ -423,8 +426,8 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 		
 		Long createdAtMiliseconds = System.currentTimeMillis();
 		if(CommonMethods.isInternetAvailable(mycontext)){
-			
-			sendLocationToServer(changedLocation.getLatitude(), changedLocation.getLongitude(), createdAtMiliseconds);
+			float batLevel = getBatteryLevel(mycontext);
+			sendLocationToServer(changedLocation.getLatitude(), changedLocation.getLongitude(), createdAtMiliseconds, batLevel);
 		}else{
 			
 			SharedPreferences unsentLocationUpdates = mycontext.getSharedPreferences("UnsentLocationUpdates", 0);
@@ -467,6 +470,19 @@ GoogleApiClient.OnConnectionFailedListener, LocationListener{
 	@Override
 	public void onConnectionSuspended(int code) {
 		canGetLocation = false;
+	}
+	
+	public static float getBatteryLevel(Context context) {
+	    Intent batteryIntent = context.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+	    int level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+	    int scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+
+	    // Error checking that probably isn't needed but I added just in case.
+	    if(level == -1 || scale == -1) {
+	        return 50.0f;
+	    }
+
+	    return ((float)level / (float)scale) * 100.0f; 
 	}
 	
 }
